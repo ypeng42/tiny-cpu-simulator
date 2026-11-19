@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a101a">
+<title>TinyCPU — Numbers become instructions</title>
+<style>
+:root{color-scheme:dark;--bg:#0a101a;--surface:#111b29;--raised:#182536;--raised2:#1c2d42;--line:#2c3b4d;--soft:#26384c;--ink:#ecf3fb;--muted:#96aabe;--muted2:#71869b;--mint:#6de4bd;--blue:#76b9ff;--gold:#f1c47f;--red:#ff8c98;--purple:#bfadff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{background:radial-gradient(ellipse 70% 490px at 90% -130px,#1b3551 0%,transparent 75%),var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;margin:0;min-width:320px}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}button,input,select,textarea{color:var(--ink)}.app{max-width:1490px;padding:30px 34px 80px;margin:auto}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:22px}.brand-line{display:flex;align-items:center;gap:12px}.logo{width:34px;height:34px;border-radius:10px;border:1px solid #39766c;background:linear-gradient(135deg,#234c50,#122838);display:grid;grid-template-columns:repeat(2,6px);grid-template-rows:repeat(2,6px);place-content:center;gap:4px;box-shadow:0 0 32px #164d5145}.logo i{height:6px;width:6px;background:var(--mint);border-radius:2px}.logo i:nth-child(2){opacity:.35}.logo i:nth-child(3){opacity:.65}.top h1{font-size:25px;letter-spacing:-.9px;margin:0;font-weight:750}.subtitle{margin:5px 0 0 46px;color:var(--muted);font-size:14px}.version{font:11px var(--mono);letter-spacing:.1em;color:var(--muted2);border:1px solid var(--line);padding:7px 10px;border-radius:7px;margin-top:5px;white-space:nowrap}.thesis{background:linear-gradient(90deg,#12332f,#101e2a 82%);border:1px solid #28564e;border-radius:12px;padding:15px 18px;margin-bottom:20px;display:flex;align-items:center;gap:13px}.thesis .mark{color:var(--mint);font-family:var(--mono);font-size:23px}.thesis strong{color:#d0fff0;font-weight:650}.thesis span{color:#afc6cf}.panel{border:1px solid var(--line);background:var(--surface);border-radius:13px;overflow:hidden}.panel-header{padding:15px 19px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.panel-header h2{font-size:14px;font-weight:730;letter-spacing:.02em;margin:0}.panel-sub{font-size:11px;color:var(--muted2);font-family:var(--mono)}.cpu-panel{margin-bottom:20px}.cpu-inner{padding:19px}.cpu-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:13px}.small-heading{text-transform:uppercase;letter-spacing:.15em;font-size:11px;color:var(--muted);font-weight:700}.cpu-note{font:11px var(--mono);color:var(--muted2)}.registers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px}.register{position:relative;background:#182639;border:1px solid #30475f;border-radius:10px;padding:12px 14px 13px;min-width:0}.register.pc{background:#122e32;border-color:#347a6b}.register-label{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-family:var(--mono);font-size:12px;font-weight:750}.register.pc .register-label{color:var(--mint)}.reg-cap{font:10px var(--mono);color:var(--muted2)}.reg-value{background:transparent;border:0;border-bottom:1px dashed transparent;font-family:var(--mono);font-size:26px;font-weight:750;letter-spacing:-1.3px;line-height:1.25;width:100%;min-width:0;margin:7px 0 6px;padding:1px 0;border-radius:0;appearance:textfield;-moz-appearance:textfield}.reg-value::-webkit-inner-spin-button,.reg-value::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.reg-value:hover,.reg-value:focus{border-bottom-color:var(--blue);outline:0}.pc .reg-value{color:var(--mint)}.reg-bits{font-family:var(--mono);font-size:11px;letter-spacing:-.2px;color:#94a9c0;white-space:nowrap}.register.pc .reg-bits{color:#81bda9}.cpu-controls{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap}.ctrl-left,.ctrl-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.btn{border:1px solid #3c5068;background:#1b2d42;color:var(--ink);padding:9px 13px;border-radius:8px;font-weight:650;min-height:37px;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;transition:background .15s,border-color .15s}.btn:hover:not(:disabled){background:#294059;border-color:#6484a3}.btn.primary{background:#20705c;border-color:#3fa080;color:#e8fff6}.btn.primary:hover:not(:disabled){background:#2b876d}.btn.secondary{background:#152639}.btn.ghost{background:transparent;border-color:var(--line);color:var(--muted)}.btn.tiny{min-height:30px;padding:5px 9px;font-size:11px}.key{font:10px var(--mono);color:#9cbdac;border:1px solid #47806c;border-radius:3px;padding:1px 4px}.status-wrap{display:flex;align-items:center;gap:9px}.state{border:1px solid #3f796c;color:#89e8c8;background:#143b34;padding:4px 9px;border-radius:5px;font:700 10px var(--mono);letter-spacing:.1em}.state.halted{border-color:#80643f;background:#3c2d1b;color:var(--gold)}.state.error{border-color:#9d4855;background:#3b1d27;color:var(--red)}.state.paused{border-color:#55718d;background:#203249;color:#a9c8e9}.state.running{border-color:#3a8071;background:#10473b;color:#a2f6d5}.step-counter{font:12px var(--mono);color:var(--muted)}.workspace{display:grid;grid-template-columns:minmax(365px,0.88fr) minmax(570px,1.25fr);align-items:start;gap:20px}.left{display:flex;flex-direction:column;gap:18px;min-width:0}.section-body{padding:17px 18px}.editor-tools{display:flex;gap:9px;align-items:center;margin-bottom:12px;flex-wrap:wrap}.select{background:#1c2b3c;border:1px solid #3a5065;border-radius:8px;padding:9px 11px;min-width:0;flex:1;font-size:12px}.editor{resize:vertical;display:block;width:100%;min-height:282px;height:312px;background:#0c1521;border:1px solid #2e4355;border-radius:9px;padding:16px 17px;color:#dfecff;font:12.7px/1.76 var(--mono);tab-size:2;white-space:pre;overflow:auto;outline:0}.editor:focus{border-color:#6199cf}.editor::selection{background:#3c638c}.editor-hint{margin:10px 0 0;color:var(--muted);font-size:12px}.editor-hint code,.hint code{font:12px var(--mono);color:#c5defb}.assemble-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}.build-info{font:11px var(--mono);color:var(--muted);text-align:right}.build-info.error{color:var(--red)}.readout{padding:14px 18px;border-bottom:1px solid var(--line);background:#111f2e}.readout-heading{font:700 10px var(--mono);color:var(--muted2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}.last-line{font-size:13px;color:#d4e3f5;line-height:1.5;min-height:19px}.last-line strong{color:var(--mint);font:700 12px var(--mono)}.trace{list-style:none;margin:0;padding:4px 18px 12px;max-height:150px;overflow:auto}.trace li{font:11px/1.55 var(--mono);color:#a9bcd2;border-bottom:1px solid #233448;padding:6px 0;display:flex;gap:9px}.trace li:last-child{border-bottom:0}.trace li .trace-pc{color:var(--mint);min-width:32px}.trace li.error-text{color:var(--red)}.trace.empty{color:var(--muted2);font:12px/1.5 inherit}.inspector-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:13px}.selected-address{margin-left:auto;color:var(--muted);font:12px var(--mono)}.edit-panel{padding:13px;border:1px solid #334b62;border-radius:9px;background:#0e1b2b}.edit-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.edit-head strong{font-size:12px}.edit-head small{font:11px var(--mono);color:var(--muted)}.edit-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:10px}.field-label{display:block;font-size:11px;color:var(--muted);margin:0 0 5px}.field{width:100%;min-width:0;height:37px;background:#121f30;border:1px solid #36516a;border-radius:7px;padding:7px 9px;color:#e4effd;font:12px var(--mono)}.field.decimal{font-size:14px}.edit-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:12px}.edit-validation{min-height:18px;color:var(--muted2);font-size:11px}.edit-validation.invalid{color:var(--red)}.edit-buttons{display:flex;gap:7px;flex-wrap:wrap}.decode{border:1px solid #33485e;border-radius:10px;overflow:hidden;margin-top:14px;background:#0d1927}.decode-empty{padding:18px;font-size:12px;color:var(--muted);line-height:1.6}.decode-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:12px 14px;background:#142337;border-bottom:1px solid #33475e}.decode-tag{font:700 10px var(--mono);color:var(--muted2);letter-spacing:.07em}.decode-number{font:12px var(--mono);color:#ddebf9;margin-top:4px}.valid-chip{font:700 10px var(--mono);padding:4px 7px;border-radius:5px;color:var(--mint);background:#174337}.valid-chip.invalid{color:var(--red);background:#49232d}.decode-content{padding:14px}.bits-layout{display:flex;gap:3px;width:100%}.bit-field{min-width:0;display:flex;flex-direction:column;align-items:center;border-radius:6px;padding:8px 4px 7px;gap:7px;border:1px solid transparent}.bit-field .bit-value{font:700 12px var(--mono);letter-spacing:-.5px;white-space:nowrap}.bit-field .bit-name{font:9px var(--mono);color:#c4d4e7;white-space:nowrap}.bit-field.op{background:#213e64;border-color:#3b6c9b;color:#a8d6ff}.bit-field.reg{background:#1a493e;border-color:#337461;color:#a9f0cf}.bit-field.payload{background:#503a23;border-color:#8a673c;color:#ffdda3}.bit-field.reserved{background:#252e3b;border-color:#455469;color:#aab9c9}.bit-field.src{background:#3b2e55;border-color:#715798;color:#d6c2ff}.bit-field.invalid-field{background:#512632;border-color:#98515c;color:#ffc5cb}.interpretation{margin-top:14px;padding-top:12px;border-top:1px solid #293e51}.interpreted-title{font:700 13px var(--mono);color:var(--ink)}.interpreted-title.invalid{color:var(--red)}.interpreted-desc{color:var(--muted);font-size:12px;margin:5px 0 0}.inspect-note{color:#718ba1;font-size:11px;margin:11px 0 0}.isa-details{border-top:1px solid var(--line);padding:10px 18px 15px}.isa-details summary{cursor:pointer;color:#b5cce1;font-weight:650;font-size:12px}.isa-table{width:100%;border-collapse:collapse;margin-top:11px;font-size:11px}.isa-table th{text-align:left;color:var(--muted);font-weight:600}.isa-table td,.isa-table th{border-bottom:1px solid #2a3b4e;padding:6px 4px}.isa-table td:first-child{font-family:var(--mono);color:var(--blue)}.isa-table td:nth-child(2){font-family:var(--mono);color:#d5e6f7}.isa-note{margin:11px 0 0;color:var(--muted);font-size:11px}.memory-panel{min-width:0}.memory-subhead{padding:13px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:#101f2d;border-bottom:1px solid var(--line)}.memory-explainer{margin:0;color:var(--muted);font-size:12px;line-height:1.5}.memory-explainer strong{color:#dce7f3}.memory-count{font:11px var(--mono);white-space:nowrap;color:var(--muted2);margin-top:2px}.memory-legend{display:flex;gap:18px;align-items:center;padding:9px 18px;border-bottom:1px solid var(--line);color:var(--muted);font-size:11px;flex-wrap:wrap}.legend-marker{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:baseline;background:#479986}.legend-marker.selected{background:#669cdc}.ram-table{width:100%;border-collapse:collapse;table-layout:fixed}.ram-table thead{position:sticky;top:0;z-index:4;background:#152439}.ram-table th{text-align:left;padding:13px 10px;font:700 10px var(--mono);color:#9aafc6;letter-spacing:.04em;border-bottom:1px solid #39516b}.ram-table th:first-child{padding-left:18px}.ram-table th:last-child{padding-right:18px;text-align:right}.ram-table tbody tr{height:44px;border-bottom:1px solid #223347;transition:background .12s}.ram-table tbody tr:nth-child(even){background:#131f2e}.ram-table tbody tr:hover{background:#21334a}.ram-table tbody tr.pc-row{background:#153a34}.ram-table tbody tr.selected-row{outline:1px solid #669bd0;outline-offset:-1px;background:#1e3450}.ram-table tbody tr.pc-row.selected-row{background:#24504b}.ram-table tbody tr.last-read:not(.selected-row):not(.pc-row){background:#302c28}.ram-table tbody tr.recent-write:not(.pc-row):not(.selected-row){background:#2b3b36}.ram-table td{padding:7px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ram-table td:first-child{padding-left:18px}.ram-table td:last-child{padding-right:18px;text-align:right}.addr{display:flex;gap:9px;align-items:center;font:12px var(--mono);color:#b2c6d8}.arrow-space{width:12px;color:var(--mint);font-size:11px;visibility:hidden}.pc-row .arrow-space{visibility:visible}.addr-text{font-weight:650}.ram-table .word-btn{border:0;background:transparent;text-align:left;font:12px var(--mono);letter-spacing:.08px;color:#c8d8ed;padding:3px 2px;min-width:0;white-space:nowrap}.ram-table tr.pc-row .word-btn{color:#b6f3d7}.ram-table tr.selected-row .word-btn{color:#e3f3ff}.ram-table .word-btn:hover{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px}.decimal-cell{font:12px var(--mono);color:#91a8c0}.go-pc{border:1px solid transparent;border-radius:5px;background:transparent;color:#8baac3;padding:4px 6px;font:11px var(--mono)}.go-pc:hover{border-color:#558c7b;background:#245142;color:#c5ffed}.ram-bottom{padding:14px 18px;background:#101d2b;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}.ram-bottom strong{color:#d3e9e1}.footnote{font-size:12px;color:var(--muted2);margin:22px 1px 0;line-height:1.7}.footnote strong{color:#afc8db}.toast{position:fixed;bottom:23px;left:50%;transform:translate(-50%,15px);padding:10px 16px;max-width:calc(100vw - 30px);border:1px solid #537d87;background:#142d3c;color:#e5f6ff;box-shadow:0 12px 40px #0009;border-radius:9px;font-size:12px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.error{border-color:#965161;color:#ffd4d9;background:#35232d}.hotkey-hint{color:var(--muted2);font:10px var(--mono)}.sep{width:1px;height:23px;background:var(--line);margin:0 3px}.intro-help{color:#b2c7db;font-size:12px;margin-top:10px}.intro-help code{font:11px var(--mono);color:#d9eafe}@media(max-width:1200px){.app{padding:25px 22px 60px}.workspace{grid-template-columns:minmax(330px,.88fr) minmax(480px,1.15fr);gap:15px}.register{padding:11px}.reg-bits{font-size:9px}.ram-table .word-btn{font-size:11px;letter-spacing:-.3px}.ram-table th:nth-child(3){width:75px}}@media(max-width:960px){.workspace{grid-template-columns:1fr}.registers{gap:8px}.reg-bits{font-size:11px}.ram-table .word-btn{font-size:12px;letter-spacing:0}.left{gap:15px}}@media(max-width:590px){.app{padding:17px 12px 45px}.top h1{font-size:23px}.subtitle{margin-left:0}.version{display:none}.thesis{padding:12px}.thesis .mark{display:none}.registers{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.register{padding:9px 5px}.register-label{font-size:10px}.reg-cap{display:none}.reg-value{font-size:19px}.reg-bits{font-size:7px;letter-spacing:-.8px}.cpu-inner{padding:12px}.panel-header{padding:12px}.section-body{padding:12px}.edit-grid{grid-template-columns:1fr}.ram-table th{padding:10px 4px;font-size:9px}.ram-table th:first-child,.ram-table td:first-child{padding-left:8px}.ram-table th:last-child,.ram-table td:last-child{padding-right:6px}.ram-table td{padding:6px 3px}.ram-table .word-btn{font-size:9.4px;letter-spacing:-.5px}.addr{gap:2px;font-size:10px}.arrow-space{width:8px}.decimal-cell{font-size:10px}.go-pc{font-size:10px;padding:3px}.memory-subhead{padding:12px}.bit-field .bit-value{font-size:10px;letter-spacing:-1px}.bit-field .bit-name{font-size:8px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="top">
+  <div><div class="brand-line"><div class="logo" aria-hidden="true"><i></i><i></i><i></i><i></i></div><h1>TinyCPU</h1></div><p class="subtitle">A tiny machine. One CPU. One RAM. Nothing hidden.</p></div>
+  <div class="version">16-BIT · 64 WORDS · V2</div>
+</header>
+<div class="thesis"><div class="mark">01</div><div><strong>Memory only stores numbers.</strong> <span>The CPU gives a number meaning by decoding the word at the address in PC. The exact same bits can be data or an instruction.</span></div></div>
+<section class="panel cpu-panel" aria-label="CPU registers and controls">
+  <div class="cpu-inner">
+    <div class="cpu-heading"><div class="small-heading">CPU · Registers</div><div class="cpu-note">Edit any decimal value to change the machine</div></div>
+    <div class="registers" id="registers"></div>
+    <div class="cpu-controls">
+      <div class="ctrl-left">
+        <button class="btn primary" id="stepBtn" title="Execute the word stored at RAM[PC]">▶ Step <span class="key">S</span></button>
+        <button class="btn secondary" id="runBtn" title="Execute continuously">▷ Run</button>
+        <button class="btn" id="pauseBtn" disabled>Ⅱ Pause</button>
+        <span class="sep"></span>
+        <button class="btn ghost" id="resetBtn" title="Reset registers and PC but leave RAM unchanged">↺ Reset CPU</button>
+      </div>
+      <div class="ctrl-right"><span class="state" id="statePill">READY</span><span class="step-counter" id="stepCounter">0 executed</span></div>
+    </div>
+  </div>
+</section>
+<div class="workspace">
+  <div class="left">
+    <section class="panel" aria-label="Assembly source editor">
+      <div class="panel-header"><h2>Assembly source</h2><span class="panel-sub">Outside the CPU</span></div>
+      <div class="section-body">
+        <div class="editor-tools"><select class="select" id="exampleSelect" aria-label="Choose an example program"><option value="add">01 · Add &amp; store</option><option value="loop">02 · A loop with jumps</option><option value="invalid">03 · Execute ordinary data</option><option value="valid">04 · Data that looks like code</option><option value="divide">05 · Division by zero</option></select><button class="btn tiny ghost" id="restoreExample" title="Restore the selected example">Restore example</button></div>
+        <textarea id="source" class="editor" spellcheck="false" aria-label="Assembly code"></textarea>
+        <div class="assemble-bar"><button class="btn primary" id="assembleBtn">Assemble &amp; load into RAM</button><span class="build-info" id="buildInfo">Not assembled</span></div>
+        <p class="editor-hint">The text above is <em>not</em> what the CPU executes. Assembly turns each instruction into a 16-bit number in RAM. <code>.ORG</code> chooses an address; <code>.WORD</code> stores a raw number.</p>
+      </div>
+      <div class="readout"><div class="readout-heading">Last CPU action</div><div id="lastAction" class="last-line">Nothing executed yet. Press <strong>Step</strong> to begin.</div></div>
+      <ul id="trace" class="trace" aria-label="Recent CPU actions"></ul>
+    </section>
+    <section class="panel" aria-label="Memory inspection and editing">
+      <div class="panel-header"><h2>Explore a RAM word</h2><span class="panel-sub">Inspect ≠ Execute</span></div>
+      <div class="section-body">
+        <div class="inspector-actions"><button class="btn tiny" id="inspectPcBtn">Decode RAM[PC]</button><button class="btn tiny ghost" id="inspectSelectedBtn">Decode selected</button><span id="selectedAddress" class="selected-address">Selected: 00</span></div>
+        <div class="edit-panel"><div class="edit-head"><strong id="editTitle">Edit RAM[00]</strong><small>Both inputs are the same value</small></div>
+          <div class="edit-grid"><label><span class="field-label">Binary</span><input id="binaryEditor" class="field" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Selected word in binary"></label><label><span class="field-label">Decimal</span><input id="decimalEditor" class="field decimal" inputmode="numeric" autocomplete="off" aria-label="Selected word in decimal"></label></div>
+          <div class="edit-actions"><div class="edit-validation" id="editValidation">16 bits per RAM word</div><div class="edit-buttons"><button class="btn tiny ghost" id="setPcBtn">Set PC here</button><button class="btn tiny primary" id="writeWordBtn">Write to RAM</button></div></div>
+        </div>
+        <div class="decode" id="decodePanel"><div class="decode-empty">Select any memory row, then press <strong>Decode selected</strong>. Or decode the word currently pointed to by PC. Decoding only inspects a number — it does not execute anything.</div></div>
+        <p class="inspect-note">Only <strong>Step</strong> or <strong>Run</strong> executes instructions. A word does not carry its own “code” or “data” tag.</p>
+      </div>
+      <details class="isa-details"><summary>Instruction set &amp; bit layout</summary><table class="isa-table"><thead><tr><th>Opcode</th><th>Assembly</th><th>Meaning</th></tr></thead><tbody>
+        <tr><td>0001</td><td>LOAD R0, 5</td><td>Put an immediate value into a register</td></tr>
+        <tr><td>0010</td><td>READ R0, [20]</td><td>Read a RAM word into a register</td></tr>
+        <tr><td>0011</td><td>STORE [20], R0</td><td>Write a register into RAM</td></tr>
+        <tr><td>0100</td><td>ADD R0, R1</td><td>R0 = R0 + R1</td></tr>
+        <tr><td>0101</td><td>SUB R0, R1</td><td>R0 = R0 − R1</td></tr>
+        <tr><td>0110</td><td>MUL R0, R1</td><td>R0 = R0 × R1</td></tr>
+        <tr><td>0111</td><td>DIV R0, R1</td><td>R0 = truncate(R0 / R1)</td></tr>
+        <tr><td>1000</td><td>JMP 20</td><td>Set PC to address 20</td></tr>
+        <tr><td>1001</td><td>JZ R0, 20</td><td>Jump if R0 is zero</td></tr>
+        <tr><td>1111</td><td>HALT</td><td>Stop execution</td></tr>
+      </tbody></table><p class="isa-note">Bits 15–12 select the operation. Other bits mean different things depending on the opcode. Unused bits must be zero. Registers are unsigned 16-bit values (arithmetic wraps at 65,536). Immediate values: 0–1023. RAM addresses: 0–63. Division truncates toward zero.</p></details>
+    </section>
+  </div>
+  <section class="panel memory-panel" aria-label="Random-access memory">
+    <div class="panel-header"><h2>RAM</h2><span class="panel-sub">One continuous address space</span></div>
+    <div class="memory-subhead"><p class="memory-explainer"><strong>64 addresses, 16 bits per word.</strong> The binary and decimal columns show the same stored value. Click a word to select it; use the explorer to edit or decode it.</p><span class="memory-count">64 × 16 bits</span></div>
+    <div class="memory-legend"><span><span class="legend-marker"></span>PC points here</span><span><span class="legend-marker selected"></span>Selected word</span><span>RAM has no code/data labels</span></div>
+    <table class="ram-table" aria-label="64-word memory"><colgroup><col style="width:16%"><col style="width:51%"><col style="width:17%"><col style="width:16%"></colgroup><thead><tr><th>ADDRESS</th><th>16-BIT BINARY</th><th>DECIMAL</th><th>PC ←</th></tr></thead><tbody id="ramBody"></tbody></table>
+    <div class="ram-bottom"><strong>Try this:</strong> set PC to an address holding the decimal value <strong>2</strong>, then press Step. Replace 2 with <strong>4098</strong> and try again. Same RAM. Different result.</div>
+  </section>
+</div>
+<p class="footnote"><strong>Model limits:</strong> TinyCPU is a deliberately invented teaching ISA, not a real processor. RAM is word-addressed; every word is 16 bits. It has no disk, operating system, cache, pipeline, or separate instruction memory. This is intentional.</p>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  'use strict';
+  const RAM_SIZE = 64;
+  const WORD_MASK = 0xffff;
+  const OPCODES = { LOAD: 1, READ: 2, STORE: 3, ADD: 4, SUB: 5, MUL: 6, DIV: 7, JMP: 8, JZ: 9, HALT: 15 };
+  const OPERATIONS = Object.fromEntries(Object.entries(OPCODES).map(([name, code]) => [code, name]));
+  const EXAMPLES = {
+    add: `; Each instruction becomes one 16-bit RAM word.\nLOAD R0, 5\nLOAD R1, 3\nADD R0, R1\nSTORE [20], R0\nHALT\n\n.ORG 20\n.WORD 2`,
+    loop: `; Add 5 + 4 + 3 + 2 + 1.\nLOAD R0, 5\nLOAD R1, 0\nLOAD R2, 1\nloop:\n  ADD R1, R0\n  SUB R0, R2\n  JZ R0, done\n  JMP loop\ndone:\n  STORE [30], R1\n  HALT\n\n.ORG 30\n.WORD 0`,
+    invalid: `; After loading, set PC to 20 and press Step.\n; The number 2 is not a valid instruction.\nLOAD R0, 5\nHALT\n\n.ORG 20\n.WORD 2`,
+    valid: `; 4098 is a number AND a valid instruction.\n; JMP 20 will execute that number.\nJMP 20\nHALT\n\n.ORG 20\n.WORD 4098\n.WORD 61440`,
+    divide: `; Division by zero puts the CPU in ERROR.\nLOAD R0, 9\nLOAD R1, 0\nDIV R0, R1\nHALT`
+  };
+  const state = {
+    ram: new Uint16Array(RAM_SIZE), regs: [0, 0, 0, 0], pc: 0,
+    status: 'READY', steps: 0, selected: 0, inspected: null, lastExecuted: null,
+    lastWrite: null, trace: [], timer: null, runningSteps: 0, lastAction: '', builtWords: 0
+  };
+  const $ = id => document.getElementById(id);
+  const formatBits = (value, width = 16) => (value >>> 0).toString(2).padStart(width, '0').replace(/(.{4})(?=.)/g, '$1 ').trim();
+  const padAddr = address => String(address).padStart(2, '0');
+  const fieldBits = (value, width) => value.toString(2).padStart(width, '0');
+  const wordDec = word => String(word & WORD_MASK);
+  let toastTimeout = null;
+
+  function toast(message, error = false) {
+    const el = $('toast');
+    el.textContent = message;
+    el.className = 'toast show' + (error ? ' error' : '');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { el.className = 'toast'; }, 2500);
+  }
+  function appendTrace(address, text, isError = false) {
+    state.trace.unshift({ address, text, isError });
+    state.trace.length = Math.min(7, state.trace.length);
+    const box = $('trace');
+    box.replaceChildren();
+    for (const entry of state.trace) {
+      const li = document.createElement('li');
+      if (entry.isError) li.className = 'error-text';
+      const location = document.createElement('span');
+      location.className = 'trace-pc';
+      location.textContent = entry.address == null ? '—' : `[${padAddr(entry.address)}]`;
+      const description = document.createElement('span');
+      description.textContent = entry.text;
+      li.append(location, description);
+      box.append(li);
+    }
+  }
+  function setLastAction(text) {
+    state.lastAction = text;
+    $('lastAction').textContent = text;
+  }
+  function resetCpu(quiet = false) {
+    pauseRun(false);
+    state.regs.fill(0);
+    state.pc = 0;
+    state.status = 'READY';
+    state.steps = 0;
+    state.lastExecuted = null;
+    state.lastWrite = null;
+    state.trace = [];
+    $('trace').replaceChildren();
+    setLastAction('CPU reset. RAM was not changed.');
+    if (!quiet) toast('CPU reset. RAM contents were preserved.');
+    render();
+  }
+  function pauseRun(markPaused = true) {
+    if (state.timer !== null) { clearInterval(state.timer); state.timer = null; }
+    if (markPaused && state.status === 'RUNNING') state.status = 'PAUSED';
+    if (markPaused) render();
+  }
+  function clearTerminalState() {
+    if (state.status === 'HALTED' || state.status === 'ERROR') state.status = 'READY';
+    if (state.status === 'PAUSED') state.status = 'READY';
+  }
+
+  function createRegisterUI() {
+    const host = $('registers');
+    for (let i = 0; i < 5; i++) {
+      const isPc = i === 4;
+      const card = document.createElement('div');
+      card.className = 'register' + (isPc ? ' pc' : '');
+      const label = document.createElement('div');
+      label.className = 'register-label';
+      label.innerHTML = `<span>${isPc ? 'PC' : `R${i}`}</span><span class="reg-cap">${isPc ? 'ADDRESS' : '16-BIT'}</span>`;
+      const input = document.createElement('input');
+      input.className = 'reg-value';
+      input.id = `reg${i}`;
+      input.type = 'number'; input.min = '0'; input.max = '65535'; input.step = '1'; input.value = '0';
+      input.setAttribute('aria-label', isPc ? 'Program counter decimal address' : `Register R${i} decimal value`);
+      input.title = isPc ? 'Program counter: address of next word to execute' : 'Editable 16-bit register value';
+      input.addEventListener('change', () => {
+        const value = Number(input.value);
+        if (!Number.isInteger(value) || value < 0 || value > WORD_MASK || input.value.trim() === '') {
+          toast('Register values must be integers from 0 to 65,535.', true);
+          input.value = isPc ? state.pc : state.regs[i];
+          return;
+        }
+        pauseRun(false);
+        if (isPc) { state.pc = value; setLastAction(`PC manually set to ${value}. No instruction was executed.`); }
+        else { state.regs[i] = value; setLastAction(`R${i} manually set to ${value}. No instruction was executed.`); }
+        clearTerminalState();
+        render();
+      });
+      const bits = document.createElement('div'); bits.className = 'reg-bits'; bits.id = `regBits${i}`;
+      card.append(label, input, bits);
+      host.append(card);
+    }
+  }
+
+  function createRamUI() {
+    const body = $('ramBody');
+    for (let address = 0; address < RAM_SIZE; address++) {
+      const tr = document.createElement('tr');
+      tr.id = `row${address}`;
+      tr.setAttribute('aria-label', `RAM address ${address}`);
+      const a = document.createElement('td');
+      a.innerHTML = `<div class="addr"><span class="arrow-space" aria-hidden="true">▶</span><span class="addr-text">${padAddr(address)}</span></div>`;
+      const w = document.createElement('td');
+      const wordBtn = document.createElement('button');
+      wordBtn.className = 'word-btn'; wordBtn.id = `word${address}`;
+      wordBtn.setAttribute('aria-label', `Select RAM address ${address} for editing`);
+      wordBtn.title = 'Select this word to edit or decode it';
+      wordBtn.addEventListener('click', () => selectAddress(address));
+      w.append(wordBtn);
+      const d = document.createElement('td');
+      d.className = 'decimal-cell'; d.id = `dec${address}`;
+      const p = document.createElement('td');
+      const pcBtn = document.createElement('button');
+      pcBtn.className = 'go-pc'; pcBtn.textContent = 'Set PC';
+      pcBtn.title = `Make RAM[${address}] the next word to execute`;
+      pcBtn.setAttribute('aria-label', `Set PC to ${address}`);
+      pcBtn.addEventListener('click', () => setPC(address));
+      p.append(pcBtn);
+      tr.addEventListener('click', event => {
+        if (event.target.closest('button')) return;
+        selectAddress(address);
+      });
+      tr.append(a, w, d, p);
+      body.append(tr);
+    }
+  }
+
+  function render() {
+    for (let i = 0; i < 5; i++) {
+      const value = i === 4 ? state.pc : state.regs[i];
+      const input = $(`reg${i}`);
+      if (document.activeElement !== input) input.value = String(value);
+      $(`regBits${i}`).textContent = formatBits(value);
+    }
+    const pill = $('statePill');
+    pill.textContent = state.status;
+    pill.className = 'state ' + state.status.toLowerCase();
+    $('stepCounter').textContent = `${state.steps} executed`;
+    const terminal = state.status === 'HALTED' || state.status === 'ERROR';
+    $('stepBtn').disabled = terminal || state.status === 'RUNNING';
+    $('runBtn').disabled = terminal || state.status === 'RUNNING';
+    $('pauseBtn').disabled = state.status !== 'RUNNING';
+    $('selectedAddress').textContent = `Selected: ${padAddr(state.selected)}`;
+    $('editTitle').textContent = `Edit RAM[${padAddr(state.selected)}]`;
+    for (let i = 0; i < RAM_SIZE; i++) {
+      $(`word${i}`).textContent = formatBits(state.ram[i]);
+      $(`dec${i}`).textContent = wordDec(state.ram[i]);
+      $(`row${i}`).className = [i === state.pc ? 'pc-row' : '', i === state.selected ? 'selected-row' : '', i === state.lastExecuted ? 'last-read' : '', i === state.lastWrite ? 'recent-write' : ''].filter(Boolean).join(' ');
+    }
+    if (state.inspected !== null) showDecode(state.inspected);
+  }
+  function selectAddress(address) {
+    state.selected = address;
+    syncEditors();
+    render();
+  }
+  function syncEditors() {
+    const value = state.ram[state.selected];
+    $('binaryEditor').value = formatBits(value);
+    $('decimalEditor').value = wordDec(value);
+    $('editValidation').textContent = '16 bits per RAM word';
+    $('editValidation').className = 'edit-validation';
+  }
+  function setPC(address) {
+    pauseRun(false);
+    state.pc = address;
+    clearTerminalState();
+    setLastAction(`PC manually set to ${address}. Next Step will execute RAM[${address}].`);
+    render();
+    toast(`PC = ${address}. Step executes RAM[${address}].`);
+  }
+  function parseBinaryEditor(raw) {
+    const bits = raw.replace(/[\s_]/g, '').replace(/^0b/i, '');
+    if (!/^[01]{1,16}$/.test(bits)) return null;
+    return parseInt(bits, 2);
+  }
+  function parseDecimalEditor(raw) {
+    if (!/^\d+$/.test(raw.trim())) return null;
+    const value = Number(raw);
+    return Number.isInteger(value) && value <= WORD_MASK && value >= 0 ? value : null;
+  }
+  function validation(isValid, message) {
+    $('editValidation').textContent = message;
+    $('editValidation').className = 'edit-validation' + (isValid ? '' : ' invalid');
+    $('writeWordBtn').disabled = !isValid;
+  }
+  function binaryChanged() {
+    const val = parseBinaryEditor($('binaryEditor').value);
+    if (val === null) return validation(false, 'Enter 1–16 binary digits (0 or 1).');
+    $('decimalEditor').value = String(val);
+    validation(true, `${val} in decimal`);
+  }
+  function decimalChanged() {
+    const val = parseDecimalEditor($('decimalEditor').value);
+    if (val === null) return validation(false, 'Enter a decimal integer from 0 to 65,535.');
+    $('binaryEditor').value = formatBits(val);
+    validation(true, 'Ready to write this 16-bit word.');
+  }
+  function writeSelected() {
+    const value = parseBinaryEditor($('binaryEditor').value);
+    const decimal = parseDecimalEditor($('decimalEditor').value);
+    if (value === null || decimal === null || value !== decimal) { validation(false, 'Use a valid binary or decimal value.'); return; }
+    pauseRun(false);
+    state.ram[state.selected] = value;
+    state.lastWrite = state.selected;
+    setLastAction(`Wrote ${value} (${formatBits(value)}) to RAM[${state.selected}].`);
+    appendTrace(state.selected, `Manual memory write ← ${value}`);
+    syncEditors();
+    render();
+    toast(`RAM[${state.selected}] = ${value}`);
+  }
+
+  function decode(word, address = 0) {
+    const opcode = word >>> 12;
+    const reg = (word >>> 10) & 3;
+    const data10 = word & 1023;
+    const wordLow6 = word & 63;
+    const reserve4 = (word >>> 6) & 15;
+    const reserve6 = (word >>> 6) & 63;
+    const regSrc = word & 3;
+    const reserve8 = (word >>> 2) & 255;
+    const opName = OPERATIONS[opcode];
+    const fields = [{ name:'OPCODE', bits:fieldBits(opcode,4), style:'op', weight:4, meaning:opName || 'Undefined' }];
+    const addField = (name,bits,style,meaning) => fields.push({ name, bits, style, weight:bits.length, meaning });
+    const result = { opcode, opName, word, address, fields, valid: true, assembly:'', description:'', error:'' };
+    if (opcode === 1) {
+      addField('REGISTER',fieldBits(reg,2),'reg',`R${reg}`);
+      addField('IMMEDIATE',fieldBits(data10,10),'payload',String(data10));
+      result.assembly = `LOAD R${reg}, ${data10}`;
+      result.description = `Put the number ${data10} directly into R${reg}.`;
+      result.reg = reg; result.imm = data10;
+    } else if (opcode === 2 || opcode === 3 || opcode === 9) {
+      addField('REGISTER',fieldBits(reg,2),'reg',`R${reg}`);
+      addField('UNUSED',fieldBits(reserve4,4),'reserved','Must be 0000');
+      addField(opcode===9?'TARGET':'ADDRESS',fieldBits(wordLow6,6),'payload',String(wordLow6));
+      if (reserve4 !== 0) result.error = 'Unused bits must all be zero.';
+      if (opcode === 2) { result.assembly=`READ R${reg}, [${wordLow6}]`; result.description=`Copy RAM[${wordLow6}] into R${reg}.`; }
+      if (opcode === 3) { result.assembly=`STORE [${wordLow6}], R${reg}`; result.description=`Copy R${reg} into RAM[${wordLow6}].`; }
+      if (opcode === 9) { result.assembly=`JZ R${reg}, ${wordLow6}`; result.description=`Set PC to ${wordLow6} if R${reg} equals zero; otherwise continue to the next word.`; }
+      result.reg=reg; result.target=wordLow6;
+    } else if (opcode >= 4 && opcode <= 7) {
+      addField('DEST',fieldBits(reg,2),'reg',`R${reg}`);
+      addField('UNUSED',fieldBits(reserve8,8),'reserved','Must be 00000000');
+      addField('SOURCE',fieldBits(regSrc,2),'src',`R${regSrc}`);
+      if (reserve8 !== 0) result.error='Unused bits must all be zero.';
+      result.assembly=`${opName} R${reg}, R${regSrc}`;
+      const math = { ADD:'+', SUB:'−', MUL:'×', DIV:'÷' }[opName];
+      result.description=`R${reg} = R${reg} ${math} R${regSrc} (unsigned 16-bit arithmetic).`;
+      result.reg=reg; result.src=regSrc;
+    } else if (opcode === 8) {
+      addField('UNUSED',fieldBits(reserve6,6),'reserved','Must be 000000');
+      addField('TARGET',fieldBits(wordLow6,6),'payload',String(wordLow6));
+      if (reserve6 !== 0) result.error='Unused bits must all be zero.';
+      result.assembly=`JMP ${wordLow6}`;
+      result.description=`Set PC to RAM address ${wordLow6}.`;
+      result.target=wordLow6;
+    } else if (opcode === 15) {
+      addField('UNUSED',fieldBits(word & 4095,12),'reserved','Must be all zeros');
+      if ((word & 4095) !== 0) result.error='HALT requires its remaining 12 bits to be zero.';
+      result.assembly='HALT';
+      result.description='Stop the CPU.';
+    } else {
+      addField('UNKNOWN',fieldBits(word & 4095,12),'invalid-field','No defined layout');
+      result.error=`Opcode ${fieldBits(opcode,4)} is not defined in TinyCPU.`;
+      result.assembly='INVALID OPCODE';
+      result.description='These bits are still a valid stored number, but not a valid machine instruction in this ISA.';
+    }
+    if (result.error) result.valid = false;
+    return result;
+  }
+  function showDecode(address) {
+    const panel = $('decodePanel');
+    panel.replaceChildren();
+    if (address < 0 || address >= RAM_SIZE) {
+      const invalid = document.createElement('div');
+      invalid.className = 'decode-empty';
+      invalid.textContent=`PC = ${address} is outside RAM (addresses 0–63). There is no word to decode.`;
+      panel.append(invalid);
+      return;
+    }
+    const word = state.ram[address];
+    const d = decode(word, address);
+    const top = document.createElement('div'); top.className='decode-top';
+    const labelCol = document.createElement('div');
+    const tag = document.createElement('div'); tag.className='decode-tag'; tag.textContent=`DECODE RAM[${padAddr(address)}]`;
+    const val = document.createElement('div'); val.className='decode-number'; val.textContent=`${word} = ${formatBits(word)}`;
+    labelCol.append(tag,val);
+    const badge = document.createElement('div'); badge.className='valid-chip' + (d.valid?'':' invalid'); badge.textContent=d.valid?'VALID':'INVALID';
+    top.append(labelCol,badge);
+    const content = document.createElement('div'); content.className='decode-content';
+    const bits = document.createElement('div'); bits.className='bits-layout';
+    for (const field of d.fields) {
+      const f=document.createElement('div'); f.className=`bit-field ${field.style}`;
+      f.style.flex = `${field.weight} 1 0`;
+      f.title=`${field.name}: ${field.meaning}`;
+      const value=document.createElement('div');value.className='bit-value';value.textContent=field.bits;
+      const name=document.createElement('div');name.className='bit-name';name.textContent=field.name;
+      f.append(value,name);bits.append(f);
+    }
+    const interpretation=document.createElement('div'); interpretation.className='interpretation';
+    const instruction=document.createElement('div'); instruction.className='interpreted-title'+(d.valid?'':' invalid');
+    instruction.textContent=d.valid?d.assembly:`ERROR: ${d.error}`;
+    const description=document.createElement('p');description.className='interpreted-desc';
+    description.textContent=d.valid?d.description:`${d.description}${d.opName ? ' ' + d.assembly : ''}`;
+    const note=document.createElement('p');note.className='inspect-note';note.textContent=address===state.pc?'PC points to this word. Inspection does not execute it.':'This is not the current PC address. Inspection does not change PC.';
+    interpretation.append(instruction,description,note);
+    content.append(bits,interpretation);panel.append(top,content);
+  }
+  function inspectAt(address) {
+    state.inspected = address;
+    showDecode(address);
+  }
+
+  function failExecution(address, description) {
+    state.status = 'ERROR';
+    setLastAction(`ERROR at RAM[${address}]: ${description}`);
+    appendTrace(address, `ERROR: ${description}`, true);
+    pauseRun(false);
+    render();
+    return false;
+  }
+  function executeOne() {
+    if (state.status === 'HALTED' || state.status === 'ERROR') return false;
+    const address = state.pc;
+    if (!Number.isInteger(address) || address < 0 || address >= RAM_SIZE) return failExecution(address, 'PC is outside RAM (0–63).');
+    const word = state.ram[address];
+    const decoded = decode(word,address);
+    state.lastExecuted = address;
+    if (!decoded.valid) return failExecution(address,decoded.error);
+    let nextPC=address+1;
+    let message='';
+    const a=decoded.reg;
+    const b=decoded.src;
+    const before=state.regs[a];
+    const source=state.regs[b];
+    switch(decoded.opcode) {
+      case 1: state.regs[a]=decoded.imm;message=`R${a} ← ${decoded.imm}`;break;
+      case 2: state.regs[a]=state.ram[decoded.target];message=`R${a} ← RAM[${decoded.target}] (${state.regs[a]})`;break;
+      case 3: state.ram[decoded.target]=state.regs[a];state.lastWrite=decoded.target;message=`RAM[${decoded.target}] ← ${state.regs[a]}`;break;
+      case 4: state.regs[a]=(before+source)&WORD_MASK;message=`R${a}: ${before} + ${source} → ${state.regs[a]}`;break;
+      case 5: state.regs[a]=(before-source)&WORD_MASK;message=`R${a}: ${before} − ${source} → ${state.regs[a]}`;break;
+      case 6: state.regs[a]=Math.imul(before,source)&WORD_MASK;message=`R${a}: ${before} × ${source} → ${state.regs[a]}`;break;
+      case 7:
+        if (source===0) return failExecution(address,`Division by zero: ${decoded.assembly}.`);
+        state.regs[a]=Math.trunc(before/source)&WORD_MASK;
+        message=`R${a}: ${before} ÷ ${source} → ${state.regs[a]}`;break;
+      case 8: nextPC=decoded.target;message=`PC ← ${nextPC}`;break;
+      case 9: if (state.regs[a]===0) nextPC=decoded.target;message=state.regs[a]===0?`R${a} is zero; PC ← ${nextPC}`:`R${a} is not zero; continue`;break;
+      case 15: state.status='HALTED';message='CPU halted';nextPC=address;break;
+    }
+    state.pc=nextPC;
+    state.steps++;
+    setLastAction(`RAM[${address}] = ${word} → ${decoded.assembly} · ${message}`);
+    appendTrace(address,`${decoded.assembly} · ${message}`);
+    render();
+    return state.status!=='HALTED';
+  }
+  function step() {
+    if (state.status==='RUNNING') return;
+    if (state.status==='PAUSED') state.status='READY';
+    executeOne();
+  }
+  function run() {
+    if (state.status==='HALTED'||state.status==='ERROR'||state.status==='RUNNING')return;
+    state.status='RUNNING';state.runningSteps=0;
+    render();
+    state.timer=setInterval(()=>{
+      if (!executeOne()) { pauseRun(false);render();return; }
+      state.runningSteps++;
+      if (state.runningSteps>=2000) { pauseRun(true);setLastAction('Paused after 2,000 steps to protect against an infinite loop.');toast('Automatic run paused after 2,000 instructions.'); }
+    },260);
+  }
+
+  function parseNumber(token,labels,line) {
+    const value=token.trim();
+    if (/^0[xX][0-9a-fA-F]+$/.test(value))return parseInt(value.slice(2),16);
+    if (/^0[bB][01]+$/.test(value))return parseInt(value.slice(2),2);
+    if (/^\d+$/.test(value))return Number(value);
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(value) && labels.has(value.toLowerCase()))return labels.get(value.toLowerCase());
+    throw Error(`Line ${line}: Unknown number or label '${token}'.`);
+  }
+  function checkRange(value,low,high,what,line){if(!Number.isSafeInteger(value)||value<low||value>high)throw Error(`Line ${line}: ${what} must be between ${low} and ${high}.`);return value;}
+  function parseReg(token,line){const matched=/^R([0-3])$/i.exec(token.trim());if(!matched)throw Error(`Line ${line}: Expected R0, R1, R2, or R3; got '${token}'.`);return Number(matched[1]);}
+  function parseAddress(token,labels,line){const match=/^\[(.+)\]$/.exec(token.trim());if(!match)throw Error(`Line ${line}: Expected a RAM address in brackets, like [20].`);return checkRange(parseNumber(match[1],labels,line),0,63,'RAM address',line);}
+  function compileInstruction(text,labels,line) {
+    const match=/^([A-Za-z]+)(?:\s+(.*))?$/.exec(text.trim());
+    if(!match)throw Error(`Line ${line}: Unrecognized instruction '${text}'.`);
+    const op=match[1].toUpperCase();
+    if(!(op in OPCODES))throw Error(`Line ${line}: Unknown instruction '${op}'.`);
+    const args=(match[2]||'').split(',').map(a=>a.trim()).filter(Boolean);
+    const required=op==='HALT'?0:op==='JMP'?1:2;
+    if(args.length!==required)throw Error(`Line ${line}: ${op} expects ${required} operand${required===1?'':'s'}.`);
+    const opcode=OPCODES[op];
+    if(op==='HALT')return opcode<<12;
+    if(op==='JMP')return (opcode<<12)|checkRange(parseNumber(args[0],labels,line),0,63,'Jump target',line);
+    if(op==='STORE'){
+      const address=parseAddress(args[0],labels,line),reg=parseReg(args[1],line);
+      return (opcode<<12)|(reg<<10)|address;
+    }
+    const reg=parseReg(args[0],line);
+    if(op==='LOAD')return (opcode<<12)|(reg<<10)|checkRange(parseNumber(args[1],labels,line),0,1023,'Immediate value',line);
+    if(op==='READ')return (opcode<<12)|(reg<<10)|parseAddress(args[1],labels,line);
+    if(op==='JZ')return (opcode<<12)|(reg<<10)|checkRange(parseNumber(args[1],labels,line),0,63,'Jump target',line);
+    const src=parseReg(args[1],line);
+    return (opcode<<12)|(reg<<10)|src;
+  }
+  function assemble(source) {
+    const lines=source.split(/\r?\n/);
+    const labels=new Map();
+    const statements=[];
+    let address=0;
+    for (let i=0;i<lines.length;i++) {
+      let rest=lines[i].replace(/;.*/,'').replace(/\/\/.*$/,'').trim();
+      const line=i+1;
+      if(!rest)continue;
+      while(true){
+        const label=/^([a-zA-Z_][a-zA-Z_0-9]*):/.exec(rest);
+        if(!label)break;
+        const name=label[1].toLowerCase();
+        if(labels.has(name))throw Error(`Line ${line}: Duplicate label '${label[1]}'.`);
+        if(address>63)throw Error(`Line ${line}: Label is past the end of RAM.`);
+        labels.set(name,address);
+        rest=rest.slice(label[0].length).trim();
+      }
+      if(!rest)continue;
+      if(/^\.ORG(?:\s+|$)/i.test(rest)){
+        const expression=rest.replace(/^\.ORG\s*/i,'');
+        if(!expression)throw Error(`Line ${line}: .ORG requires an address.`);
+        const n=parseNumber(expression,labels,line);
+        address=checkRange(n,0,63,'.ORG address',line);
+        continue;
+      }
+      if(address>=RAM_SIZE)throw Error(`Line ${line}: No room in RAM for another word.`);
+      statements.push({address,line,text:rest});
+      address++;
+    }
+    const nextRam=new Uint16Array(RAM_SIZE);
+    const occupied=new Set();
+    for(const item of statements){
+      if(occupied.has(item.address))throw Error(`Line ${item.line}: Address ${item.address} is already occupied.`);
+      occupied.add(item.address);
+      if(/^\.WORD(?:\s+|$)/i.test(item.text)){
+        const expression=item.text.replace(/^\.WORD\s*/i,'');
+        if(!expression)throw Error(`Line ${item.line}: .WORD requires a number.`);
+        nextRam[item.address]=checkRange(parseNumber(expression,labels,item.line),0,WORD_MASK,'.WORD value',item.line);
+      }else nextRam[item.address]=compileInstruction(item.text,labels,item.line);
+    }
+    if(statements.length===0)throw Error('The source contains no instructions or words.');
+    return {ram:nextRam,count:statements.length};
+  }
+  function assembleAndLoad() {
+    let compiled;
+    try { compiled=assemble($('source').value); }
+    catch(error){$('buildInfo').textContent=error.message;$('buildInfo').className='build-info error';toast(error.message,true);return;}
+    pauseRun(false);
+    state.ram=compiled.ram;
+    state.builtWords=compiled.count;
+    state.inspected=null;
+    $('decodePanel').innerHTML='<div class="decode-empty">The assembled words are now in RAM. Select a word and decode it, or press Step to execute RAM[PC].</div>';
+    resetCpu(true);
+    syncEditors();
+    $('buildInfo').textContent=`${compiled.count} words loaded · PC = 0`;
+    $('buildInfo').className='build-info';
+    setLastAction(`${compiled.count} machine words loaded into RAM. Press Step to execute RAM[0].`);
+    toast(`${compiled.count} words loaded into RAM. The CPU now reads these numbers.`);
+    render();
+  }
+
+  function switchExample(name) {
+    if(!Object.prototype.hasOwnProperty.call(EXAMPLES,name))return;
+    $('source').value=EXAMPLES[name];
+    $('buildInfo').textContent='Source changed · assemble to load';
+    $('buildInfo').className='build-info';
+  }
+  function wireEvents() {
+    $('stepBtn').addEventListener('click',step);
+    $('runBtn').addEventListener('click',run);
+    $('pauseBtn').addEventListener('click',()=>pauseRun(true));
+    $('resetBtn').addEventListener('click',()=>resetCpu());
+    $('assembleBtn').addEventListener('click',assembleAndLoad);
+    $('source').addEventListener('input',()=>{$('buildInfo').textContent='Source changed · assemble to load';$('buildInfo').className='build-info';});
+    $('exampleSelect').addEventListener('change',()=>switchExample($('exampleSelect').value));
+    $('restoreExample').addEventListener('click',()=>switchExample($('exampleSelect').value));
+    $('inspectPcBtn').addEventListener('click',()=>inspectAt(state.pc));
+    $('inspectSelectedBtn').addEventListener('click',()=>inspectAt(state.selected));
+    $('binaryEditor').addEventListener('input',binaryChanged);
+    $('decimalEditor').addEventListener('input',decimalChanged);
+    $('writeWordBtn').addEventListener('click',writeSelected);
+    $('setPcBtn').addEventListener('click',()=>setPC(state.selected));
+    $('binaryEditor').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();writeSelected();}});
+    $('decimalEditor').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();writeSelected();}});
+    document.addEventListener('keydown',event=>{
+      if(event.key.toLowerCase()!=='s'||event.metaKey||event.ctrlKey||event.altKey||event.repeat)return;
+      if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)||document.activeElement.isContentEditable)return;
+      event.preventDefault();step();
+    });
+  }
+  createRegisterUI();
+  createRamUI();
+  wireEvents();
+  switchExample('add');
+  assembleAndLoad();
+  syncEditors();
+  render();
+  // Optional read-only hook for teaching tests. No extra dependencies are required.
+  window.TinyCPU = Object.freeze({snapshot:()=>({pc:state.pc,regs:[...state.regs],ram:[...state.ram],status:state.status,steps:state.steps}),decode:(word)=>decode(word)});
+})();
+</script>
+</body>
+</html>
